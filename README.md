@@ -1,12 +1,11 @@
 # Simple To Do App
 
 Simple to do app with fluter
-Flutter kullanarak basit bir görev listesi uygulamasını oluşturur ve yönetir.
-Genel mantığı, görevlerin eklenmesi, düzenlenmesi, silinmesi ve onaylanması üzerine kurulmuştur. Kullanıcı arayüzü, görevlerin listesi ve ekleme/düzenleme işlevleri için gerekli alanları sağlar.
+The application is used to list, add, edit, delete, and associate dates with tasks.
+
 - add tasks by dates
 - firebase integration(soon)
 - attachment files(soon)
-- ✨Magic ✨
 
 ## Features
 
