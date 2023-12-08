@@ -4,8 +4,8 @@ Simple to do app with fluter
 Flutter kullanarak basit bir görev listesi uygulamasını oluşturur ve yönetir.
 Genel mantığı, görevlerin eklenmesi, düzenlenmesi, silinmesi ve onaylanması üzerine kurulmuştur. Kullanıcı arayüzü, görevlerin listesi ve ekleme/düzenleme işlevleri için gerekli alanları sağlar.
 - add tasks by dates
-- firebase integration(yakında)
-- attachment files(yakında)
+- firebase integration(soon)
+- attachment files(soon)
 - ✨Magic ✨
 
 ## Features
