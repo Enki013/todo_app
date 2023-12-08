@@ -67,6 +67,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
   }
 
   Widget _buildTodoItem(String todo, int index) {
+    String formattedDate = DateFormat('E, MMM d', 'en_US')
+        .format(DateTime.parse(todo.split(':').first.trim()));
+
+    // String formattedDate = DateFormat.E()
+    //     .add_MMMd()
+    //     .format(DateTime.parse(todo.split(':').first.trim()));
+
     return Dismissible(
         key: Key(todo),
         onDismissed: (direction) {
@@ -106,10 +113,27 @@ class _TodoListScreenState extends State<TodoListScreen> {
               title: Text(
                 todo.split(':').last.trim(),
                 style: const TextStyle(fontWeight: FontWeight.bold),
+                                        overflow: TextOverflow.ellipsis,
+
               ),
-              subtitle: Text(
-                todo.split(':').first.trim(),
-                style: const TextStyle(fontStyle: FontStyle.italic),
+              subtitle: Container(
+                padding:
+                    const EdgeInsets.only(top: 8.0), // Alt boşluk eklemek için
+
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today,
+                        size: 16), // Tarih ikonu eklendi
+                    const SizedBox(width: 4), // Aralık için boşluk eklendi
+                    Expanded(
+                      child: Text(
+                        formattedDate,
+                        style: const TextStyle(fontStyle: FontStyle.italic),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    )
+                  ],
+                ),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
