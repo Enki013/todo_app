@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
@@ -34,12 +33,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
   final TextEditingController _textEditingController = TextEditingController();
   late SharedPreferences _prefs;
   late List<String> _todoList;
+  late List<bool> _checkedStateList;
   DateTime? _selectedDate;
 
   @override
   void initState() {
     super.initState();
     _todoList = [];
+    _checkedStateList = [];
     _initPrefs();
   }
 
@@ -51,45 +52,80 @@ class _TodoListScreenState extends State<TodoListScreen> {
   void _loadTodoList() {
     setState(() {
       _todoList = _prefs.getStringList('todo_list') ?? [];
+      _checkedStateList = _todoList.map((_) => false).toList();
+      for (int i = 0; i < _todoList.length; i++) {
+        _checkedStateList[i] = _prefs.getBool('checkbox_status_$i') ?? false;
+      }
     });
   }
 
   void _saveTodoList() {
     _prefs.setStringList('todo_list', _todoList);
-
-    for (int i = 0; i < _todoList.length; i++) {
-      _prefs.setBool(
-          'checkbox_status_$i', _prefs.getBool('checkbox_status_$i') ?? false);
+    for (int i = 0; i < _checkedStateList.length; i++) {
+      _prefs.setBool('checkbox_status_$i', _checkedStateList[i]);
     }
   }
 
-  Widget buildTodoItem(String todo, int index) {
-    return CheckboxListTile(
-      title: Text(
-        todo.split(':').last.trim(),
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-      subtitle: Text(
-        todo.split(':').first.trim(),
-        style: const TextStyle(fontStyle: FontStyle.italic),
-      ),
-      value: _prefs.getBool('checkbox_status_$index') ?? false,
-      onChanged: (bool? value) {
+  Widget _buildTodoItem(String todo, int index) {
+    return Dismissible(
+      key: Key(todo),
+      onDismissed: (direction) {
         setState(() {
-          _prefs.setBool('checkbox_status_$index', value ?? false);
+          _todoList.removeAt(index);
+          _checkedStateList.removeAt(index);
           _saveTodoList();
         });
       },
-      secondary: IconButton(
-        icon: const Icon(Icons.edit),
-        onPressed: () {
-          editTodoItem(todo);
-        },
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20.0),
+        color: const Color(0xff6750a4),
+        child: const Icon(
+          Icons.delete,
+          color: Colors.white,
+        ),
+      ),
+      child: Card(
+        elevation: 3,
+        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        child: ListTile(
+          title: Text(
+            todo.split(':').last.trim(),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(
+            todo.split(':').first.trim(),
+            style: const TextStyle(fontStyle: FontStyle.italic),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: () {
+                  _editTodoItem(todo, index);
+                },
+              ),
+              Checkbox(
+                value: _checkedStateList[index],
+                onChanged: (bool? value) {
+                  setState(() {
+                    _checkedStateList[index] = value ?? false;
+                    _saveTodoList();
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Future<void> selectDate(BuildContext context) async {
+  Future<void> _selectDate(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
@@ -103,13 +139,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
     }
   }
 
-  Future<void> addTodoItem(String todo) async {
+  Future<void> _addTodoItem(String todo) async {
     if (todo.isNotEmpty) {
       String selectedDateFormatted =
           DateFormat('yyyy-MM-dd').format(_selectedDate ?? DateTime.now());
       String todoItem = '$selectedDateFormatted: $todo';
       setState(() {
         _todoList.add(todoItem);
+        _checkedStateList.add(false);
         _selectedDate = null;
       });
       _saveTodoList();
@@ -117,7 +154,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     }
   }
 
-  Future<void> editTodoItem(String oldTodo) async {
+  Future<void> _editTodoItem(String oldTodo, int index) async {
     TextEditingController editTextController = TextEditingController();
     DateTime? newSelectedDate = _selectedDate;
 
@@ -179,8 +216,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                 String newDateFormatted = DateFormat('yyyy-MM-dd')
                     .format(newSelectedDate ?? DateTime.now());
                 String newTodo = '$newDateFormatted: $editedContent';
-                _todoList.add(newTodo);
-                _todoList.remove(oldTodo);
+                _todoList[index] = newTodo;
                 _saveTodoList();
                 setState(() {
                   _todoList = List.from(_todoList);
@@ -207,7 +243,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
             child: ListView.builder(
               itemCount: _todoList.length,
               itemBuilder: (context, index) {
-                return buildTodoItem(_todoList[index], index);
+                return _buildTodoItem(_todoList[index], index);
               },
             ),
           ),
@@ -223,7 +259,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         onPressed: () {
-                          selectDate(context);
+                          _selectDate(context);
                         },
                         icon: const Icon(Icons.calendar_today),
                       ),
@@ -233,7 +269,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                 const SizedBox(width: 8.0),
                 ElevatedButton(
                   onPressed: () {
-                    addTodoItem(_textEditingController.text);
+                    _addTodoItem(_textEditingController.text);
                   },
                   child: const Text('Ekle'),
                 ),
