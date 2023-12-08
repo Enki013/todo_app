@@ -12,7 +12,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Tarihli Notlar',
+      title: 'Task List',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -68,48 +68,33 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
   Widget _buildTodoItem(String todo, int index) {
     return Dismissible(
-      key: Key(todo),
-      onDismissed: (direction) {
-        setState(() {
-          _todoList.removeAt(index);
-          _checkedStateList.removeAt(index);
-          _saveTodoList();
-        });
-      },
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20.0),
-        color: const Color(0xff6750a4),
-        child: const Icon(
-          Icons.delete,
-          color: Colors.white,
-        ),
-      ),
-      child: Card(
-        elevation: 3,
-        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-        child: ListTile(
-          title: Text(
-            todo.split(':').last.trim(),
-            style: const TextStyle(fontWeight: FontWeight.bold),
+        key: Key(todo),
+        onDismissed: (direction) {
+          setState(() {
+            _todoList.removeAt(index);
+            _checkedStateList.removeAt(index);
+            _saveTodoList();
+          });
+        },
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20.0),
+          color: const Color(0xff6750a4),
+          child: const Icon(
+            Icons.delete,
+            color: Colors.white,
           ),
-          subtitle: Text(
-            todo.split(':').first.trim(),
-            style: const TextStyle(fontStyle: FontStyle.italic),
+        ),
+        child: Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0),
           ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: () {
-                  _editTodoItem(todo, index);
-                },
-              ),
-              Checkbox(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+            child: ListTile(
+              leading: Checkbox(
                 value: _checkedStateList[index],
                 onChanged: (bool? value) {
                   setState(() {
@@ -118,11 +103,38 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   });
                 },
               ),
-            ],
+              title: Text(
+                todo.split(':').last.trim(),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                todo.split(':').first.trim(),
+                style: const TextStyle(fontStyle: FontStyle.italic),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () {
+                      _editTodoItem(todo, index);
+                    },
+                  ),
+
+                  // Checkbox(
+                  //   value: _checkedStateList[index],
+                  //   onChanged: (bool? value) {
+                  //     setState(() {
+                  //       _checkedStateList[index] = value ?? false;
+                  //       _saveTodoList();
+                  //     });
+                  //   },
+                  // ),//checkbox yeri değiştirildi en sola
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -235,7 +247,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tarihli Notlar'),
+        title: const Text('Task List'),
       ),
       body: Column(
         children: <Widget>[
@@ -247,8 +259,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
+          Container(
+            margin: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
             child: Row(
               children: <Widget>[
                 Expanded(
@@ -256,7 +273,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     controller: _textEditingController,
                     decoration: InputDecoration(
                       labelText: 'Yeni Not Ekle',
-                      border: const OutlineInputBorder(),
+                      //border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         onPressed: () {
                           _selectDate(context);
