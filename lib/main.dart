@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
@@ -12,7 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Task List',
+      title: 'Tarihli Notlar',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -31,58 +32,64 @@ class TodoListScreen extends StatefulWidget {
 
 class _TodoListScreenState extends State<TodoListScreen> {
   final TextEditingController _textEditingController = TextEditingController();
-  SharedPreferences? _prefs;
-  late Map<String, bool> _todoList;
+  late SharedPreferences _prefs;
+  late List<String> _todoList;
   DateTime? _selectedDate;
 
   @override
   void initState() {
     super.initState();
-    _todoList = {};
+    _todoList = [];
+    _initPrefs();
+  }
+
+  Future<void> _initPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
     _loadTodoList();
   }
 
-  Future<void> _loadTodoList() async {
-    _prefs = await SharedPreferences.getInstance();
+  void _loadTodoList() {
     setState(() {
-      _todoList = {
-        for (var key
-            in _prefs!.getKeys().where((key) => key.startsWith('todo_')))
-          key.substring(5): _prefs!.getBool(key) ?? false,
-      };
+      _todoList = _prefs.getStringList('todo_list') ?? [];
     });
   }
 
-  Future<void> _saveTodoList() async {
-    _todoList.forEach((key, value) async {
-      await _prefs!.setBool('todo_$key', value);
-    });
+  void _saveTodoList() {
+    _prefs.setStringList('todo_list', _todoList);
+
+    for (int i = 0; i < _todoList.length; i++) {
+      _prefs.setBool(
+          'checkbox_status_$i', _prefs.getBool('checkbox_status_$i') ?? false);
+    }
   }
 
-  Widget _buildTodoItem(String todo, bool isCompleted) {
-    String todoDate = todo.split(':').first.trim(); // Notun tarihi
-
-    return ListTile(
-      title: Text(todo.split(':').last.trim()), // Notun kendisi
-      subtitle: Text(todoDate), // Tarih alt metni
-      trailing: const Icon(Icons.today), // Ajanda simgesi
-      leading: Checkbox(
-        value: isCompleted,
-        onChanged: (bool? value) {
-          setState(() {
-            _todoList[todo] = value ?? false;
-          });
+  Widget buildTodoItem(String todo, int index) {
+    return CheckboxListTile(
+      title: Text(
+        todo.split(':').last.trim(),
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text(
+        todo.split(':').first.trim(),
+        style: const TextStyle(fontStyle: FontStyle.italic),
+      ),
+      value: _prefs.getBool('checkbox_status_$index') ?? false,
+      onChanged: (bool? value) {
+        setState(() {
+          _prefs.setBool('checkbox_status_$index', value ?? false);
           _saveTodoList();
+        });
+      },
+      secondary: IconButton(
+        icon: const Icon(Icons.edit),
+        onPressed: () {
+          editTodoItem(todo);
         },
       ),
-      onTap: () {
-        // ListTile'a tıklama işlemleri
-        //not edit yapilacak
-      },
     );
   }
 
-  Future<void> _selectDate(BuildContext context) async {
+  Future<void> selectDate(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
@@ -96,25 +103,103 @@ class _TodoListScreenState extends State<TodoListScreen> {
     }
   }
 
-  Future<void> _addTodoItem(String todo) async {
+  Future<void> addTodoItem(String todo) async {
     if (todo.isNotEmpty) {
       String selectedDateFormatted =
           DateFormat('yyyy-MM-dd').format(_selectedDate ?? DateTime.now());
       String todoItem = '$selectedDateFormatted: $todo';
       setState(() {
-        _todoList[todoItem] = false;
-        _selectedDate = null; // Seçili tarihi sıfırlama
+        _todoList.add(todoItem);
+        _selectedDate = null;
       });
-      await _saveTodoList();
+      _saveTodoList();
       _textEditingController.clear();
     }
+  }
+
+  Future<void> editTodoItem(String oldTodo) async {
+    TextEditingController editTextController = TextEditingController();
+    DateTime? newSelectedDate = _selectedDate;
+
+    String oldTodoDate = oldTodo.split(':').first.trim();
+    String oldTodoContent = oldTodo.split(':').last.trim();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Notu Düzenle'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: editTextController..text = oldTodoContent,
+                decoration: const InputDecoration(labelText: 'Not İçeriği'),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      readOnly: true,
+                      controller: TextEditingController(text: oldTodoDate),
+                      decoration: const InputDecoration(labelText: 'Tarih'),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: () async {
+                      DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: newSelectedDate ?? DateTime.now(),
+                        firstDate: DateTime(2022),
+                        lastDate: DateTime(2025),
+                      );
+                      if (pickedDate != null && pickedDate != newSelectedDate) {
+                        setState(() {
+                          newSelectedDate = pickedDate;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('İptal'),
+            ),
+            TextButton(
+              onPressed: () {
+                String editedContent = editTextController.text.trim();
+                String newDateFormatted = DateFormat('yyyy-MM-dd')
+                    .format(newSelectedDate ?? DateTime.now());
+                String newTodo = '$newDateFormatted: $editedContent';
+                _todoList.add(newTodo);
+                _todoList.remove(oldTodo);
+                _saveTodoList();
+                setState(() {
+                  _todoList = List.from(_todoList);
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text('Kaydet'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Task List'),
+        title: const Text('Tarihli Notlar'),
       ),
       body: Column(
         children: <Widget>[
@@ -122,26 +207,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
             child: ListView.builder(
               itemCount: _todoList.length,
               itemBuilder: (context, index) {
-                String todo = _todoList.keys.elementAt(index);
-                bool isCompleted = _todoList.values.elementAt(index);
-                return ListTile(
-                  title: Text(todo.split(':').last.trim()),
-                  subtitle: Text(todo.split(':').first.trim()),
-                  trailing: const Icon(Icons.today),
-                  leading: Checkbox(
-                    value: isCompleted,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _todoList[todo] = value ?? false;
-                      });
-                      _saveTodoList();
-                    },
-                  ),
-                  onTap: () {
-                    // ListTile'a tıklama işlemleri
-                    //not edit yapilacak
-                  },
-                );
+                return buildTodoItem(_todoList[index], index);
               },
             ),
           ),
@@ -153,11 +219,11 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   child: TextField(
                     controller: _textEditingController,
                     decoration: InputDecoration(
-                      labelText: 'Add Task',
+                      labelText: 'Yeni Not Ekle',
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         onPressed: () {
-                          _selectDate(context);
+                          selectDate(context);
                         },
                         icon: const Icon(Icons.calendar_today),
                       ),
@@ -167,7 +233,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                 const SizedBox(width: 8.0),
                 ElevatedButton(
                   onPressed: () {
-                    _addTodoItem(_textEditingController.text);
+                    addTodoItem(_textEditingController.text);
                   },
                   child: const Text('Ekle'),
                 ),
