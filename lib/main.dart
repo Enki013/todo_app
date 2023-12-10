@@ -73,6 +73,12 @@ class _TodoListScreenState extends State<TodoListScreen> {
     // String formattedDate = DateFormat.E()
     //     .add_MMMd()
     //     .format(DateTime.parse(todo.split(':').first.trim()));
+    bool isChecked = _checkedStateList[index];
+    TextStyle textStyle = TextStyle(
+      fontWeight: FontWeight.bold,
+      fontStyle: isChecked ? FontStyle.italic : FontStyle.normal,
+      decoration: isChecked ? TextDecoration.lineThrough : TextDecoration.none,
+    );
 
     return Dismissible(
         key: Key(todo),
@@ -112,9 +118,10 @@ class _TodoListScreenState extends State<TodoListScreen> {
               ),
               title: Text(
                 todo.split(':').last.trim(),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-                                        overflow: TextOverflow.ellipsis,
+                // style: const TextStyle(fontWeight: FontWeight.bold),
+                style: textStyle,
 
+                overflow: TextOverflow.ellipsis,
               ),
               subtitle: Container(
                 padding:
