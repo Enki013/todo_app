@@ -16,5 +16,3 @@ The application is used to list, add, edit, delete, and associate dates with tas
 - Swipe-to-delete functionality for tasks is implemented using the Dismissible widget.
 - The date for each task is formatted using the intl package and displayed as a formatted date.
 
-## Screenshots
-![Screenshot_1702072364 (Small)](https://github.com/Enki013/todo_app/assets/39771190/dbfe8143-a0c9-4f57-b2cc-bc8616b4e1ec)
