@@ -1,30 +1,28 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:todo_app/main.dart';
+import 'package:todo_app/main.dart'; // Uygulama yolunuza göre güncelleyin
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('TodoListScreen widget test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Expect to find an AppBar with the title 'Task List'.
+    expect(find.text('Task List'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Add a test todo item.
+    await tester.enterText(find.byType(TextField), 'Test Todo');
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Expect to find the added test todo item.
+    expect(find.text('Test Todo'), findsOneWidget);
+
+    // Dismiss the added test todo item.
+    await tester.drag(find.byType(Dismissible), const Offset(500.0, 0.0));
+    await tester.pumpAndSettle();
+
+    // Expect the test todo item to be dismissed.
+    expect(find.text('Test Todo'), findsNothing);
   });
 }
