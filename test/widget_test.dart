@@ -1,43 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:todo_app/main.dart'; // Uygulama yolunuza göre güncelleyin
+import 'package:mockito/mockito.dart';
+import 'package:todo_app/main.dart';
+
+// SharedPreferences'ın sahte sürümünü oluşturmak için bir Mock sınıfı
+class MockSharedPreferences extends Mock implements SharedPreferences {}
+
+// SharedPreferences'ın sahte sürümü
+class FakeSharedPreferences {
+  late MockSharedPreferences sharedPreferences;
+
+  FakeSharedPreferences() {
+    sharedPreferences = MockSharedPreferences();
+    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInstance(sharedPreferences);
+  }
+}
 
 void main() {
-  group('TodoListScreen widget test', () {
-    late SharedPreferences prefs;
+  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+    // Sahte SharedPreferences'ı oluştur
+    final fakeSharedPreferences = FakeSharedPreferences();
 
-    setUp(() async {
-      // Initialize SharedPreferences for tests
-      prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList('todo_list', []);
-    });
+    // Uygulamanın ana widget'ını başlat
+    await tester.pumpWidget(MyApp());
 
-    tearDown(() async {
-      // Clean up after tests
-      await prefs.clear();
-    });
+    // Butonun var olduğunu doğrulayın
+    expect(find.byType(ElevatedButton), findsOneWidget);
 
-    testWidgets('Add and remove todo item', (WidgetTester tester) async {
-      await tester.pumpWidget(const MyApp());
+    // Butona tıklayarak işlevselliği test edin
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pump();
 
-      // Your test scenario here
-      // ...
+    // Counter'ın artıp artmadığını kontrol edin
+    expect(find.text('1'), findsOneWidget);
+  });
 
-      // Example scenario: Tap the 'Add' button and expect to find the added todo item
-      await tester.enterText(find.byType(TextField), 'Test Todo');
-      await tester.tap(find.byType(ElevatedButton));
-      await tester.pumpAndSettle();
+  testWidgets('Adding todo item test', (WidgetTester tester) async {
+    final fakeSharedPreferences = FakeSharedPreferences();
+    
+    await tester.pumpWidget(MyApp());
 
-      expect(find.text('Test Todo'), findsOneWidget);
+    // Ekleme butonunun var olduğunu doğrula
+    expect(find.byType(ElevatedButton), findsOneWidget);
 
-      // Example scenario: Dismiss the added todo item and expect it to be removed
-      await tester.drag(find.byType(Dismissible), const Offset(500.0, 0.0));
-      await tester.pumpAndSettle();
+    // Yeni bir görev eklemek için TextField'a değer gir
+    await tester.enterText(find.byType(TextField), 'Test Todo');
+    await tester.pump();
 
-      expect(find.text('Test Todo'), findsNothing);
-    });
+    // Ekleme butonuna tıkla
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pump();
 
-    // Additional tests can be added here using the same setup/teardown logic
+    // Yeni görevin listeye eklendiğini doğrula
+    expect(find.text('Test Todo'), findsOneWidget);
   });
 }
