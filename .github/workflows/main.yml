@@ -13,6 +13,7 @@ jobs:
       - uses: actions/setup-java@v4.0.0
         with:
           java-version: "12.x"
+          distribution: adopt
       - uses: subosito/flutter-action@v2.12.0
         with:
           channel: "stable"
