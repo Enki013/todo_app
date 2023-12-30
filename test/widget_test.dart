@@ -11,10 +11,8 @@ class FakeSharedPreferences {
 
   FakeSharedPreferences() {
     sharedPreferences = MockSharedPreferences();
-    // SharedPreferences.setMockInitialValues({}); // Burada kullanılmasına gerek yok
-    // SharedPreferences.setMockInstance(sharedPreferences); // Burada kullanılmasına gerek yok
     when(sharedPreferences.setStringList(any, any)).thenAnswer((_) => Future.value(true));
-    when(sharedPreferences.getStringList(any)).thenReturn([]);
+    when(sharedPreferences.getStringList(any)).thenReturn(<String>[]);
     when(sharedPreferences.setBool(any, any)).thenAnswer((_) => Future.value(true));
     when(sharedPreferences.getBool(any)).thenReturn(false);
   }
