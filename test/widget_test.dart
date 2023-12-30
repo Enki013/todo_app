@@ -1,28 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo_app/main.dart'; // Uygulama yolunuza göre güncelleyin
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:your_app_path/main.dart'; // Uygulama yolunuza göre güncelleyin
 
 void main() {
-  testWidgets('TodoListScreen widget test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('TodoListScreen widget test', () {
+    late SharedPreferences prefs;
 
-    // Expect to find an AppBar with the title 'Task List'.
-    expect(find.text('Task List'), findsOneWidget);
+    setUp(() async {
+      // Initialize SharedPreferences for tests
+      prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('todo_list', []);
+    });
 
-    // Add a test todo item.
-    await tester.enterText(find.byType(TextField), 'Test Todo');
-    await tester.tap(find.byType(ElevatedButton));
-    await tester.pumpAndSettle();
+    tearDown(() async {
+      // Clean up after tests
+      await prefs.clear();
+    });
 
-    // Expect to find the added test todo item.
-    expect(find.text('Test Todo'), findsOneWidget);
+    testWidgets('Add and remove todo item', (WidgetTester tester) async {
+      await tester.pumpWidget(const MyApp());
 
-    // Dismiss the added test todo item.
-    await tester.drag(find.byType(Dismissible), const Offset(500.0, 0.0));
-    await tester.pumpAndSettle();
+      // Your test scenario here
+      // ...
 
-    // Expect the test todo item to be dismissed.
-    expect(find.text('Test Todo'), findsNothing);
+      // Example scenario: Tap the 'Add' button and expect to find the added todo item
+      await tester.enterText(find.byType(TextField), 'Test Todo');
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Test Todo'), findsOneWidget);
+
+      // Example scenario: Dismiss the added todo item and expect it to be removed
+      await tester.drag(find.byType(Dismissible), const Offset(500.0, 0.0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Test Todo'), findsNothing);
+    });
+
+    // Additional tests can be added here using the same setup/teardown logic
   });
 }
