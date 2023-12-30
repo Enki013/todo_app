@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:your_app_path/main.dart'; // Uygulama yolunuza göre güncelleyin
+import 'package:todo_app/main.dart'; // Uygulama yolunuza göre güncelleyin
 
 void main() {
   group('TodoListScreen widget test', () {
