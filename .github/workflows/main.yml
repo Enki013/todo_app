@@ -1,56 +1,30 @@
-name: CI
+name: Flutter Build
+
 on:
-  pull_request:
+  push:
     branches:
-      - master
+      - main
 
 jobs:
-  flutter_test:
-    name: Run fluter test and analyze
+  build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4.1.1
-      - uses: actions/setup-java@v4.0.0
-        with:
-          java-version: "12.x"
-          distribution: adopt
-      - uses: subosito/flutter-action@v2.12.0
-        with:
-          channel: "stable"
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
 
-  build_ios:
-    name: Build Flutter (İOS)
-    #needs: [flutter_test]
-    runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4.1.1
-      - uses: actions/setup-java@v4.0.0
-        with:
-          java-version: "12.x"
-          distribution: adopt
-      - uses: subosito/flutter-action@v2.12.0
-        with:
-          channel: "stable"
-      - run: flutter pub get
-      - run: flutter clean
-      - run: flutter build ios --no-codesign
+      - uses: actions/checkout@v2
 
-  build_android:
-    name: Build Flutter (android)
-    #needs: [flutter_test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4.1.1
-      - uses: actions/setup-java@v4.0.0
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          java-version: "12.x"
-          distribution: adopt
-      - uses: subosito/flutter-action@v2.12.0
+          flutter-version: "3.x"
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk
+
+      - name: Archive the artifact
+        uses: actions/upload-artifact@v2
         with:
-          channel: "stable"
-      - run: flutter pub get
-      - run: flutter clean
-      - run: flutter build android
+          name: app-release
+          path: build/app/outputs/flutter-apk/app-release.apk # APK dosyasının yolu
