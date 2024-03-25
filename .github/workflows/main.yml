@@ -78,7 +78,7 @@ jobs:
     - name: Zip iOS IPA
       run: |
        cd ./build/ios/iphoneos
-       zip -r Runner.zip Runner.app
+       zip -r app-release-ios.zip *
     
     - name: Upload iOS IPA
       id: upload_ios_release_asset 
@@ -87,7 +87,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release_ios.outputs.upload_url }}
-        asset_path: ./build/ios/iphoneos/Runner.zip
+        asset_path: ./build/ios/iphoneos/app-release-ios.zip
         asset_name: app-release-ios.zip
         asset_content_type: application/zip
    
