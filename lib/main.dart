@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
-void main() {
+void main() async {
+  await Hive.initFlutter();
+  Hive.registerAdapter(TodoItemAdapter());
+  await Hive.openBox<TodoItem>('todoBox');
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +26,7 @@ class MyApp extends StatelessWidget {
 }
 
 class TodoListScreen extends StatefulWidget {
-  const TodoListScreen({Key? key}) : super(key: key);
+  const TodoListScreen({super.key});
 
   @override
   TodoListScreenState createState() => TodoListScreenState();
@@ -31,141 +34,99 @@ class TodoListScreen extends StatefulWidget {
 
 class TodoListScreenState extends State<TodoListScreen> {
   final TextEditingController _textEditingController = TextEditingController();
-  late SharedPreferences _prefs;
-  late List<String> _todoList;
-  late List<bool> _checkedStateList;
+  late List<TodoItem> _todoList;
   DateTime? _selectedDate;
 
   @override
   void initState() {
     super.initState();
     _todoList = [];
-    _checkedStateList = [];
-    _initPrefs();
-  }
-
-  Future<void> _initPrefs() async {
-    _prefs = await SharedPreferences.getInstance();
     _loadTodoList();
   }
 
   void _loadTodoList() {
+    final box = Hive.box<TodoItem>('todoBox');
     setState(() {
-      _todoList = _prefs.getStringList('todo_list') ?? [];
-      _checkedStateList = _todoList.map((_) => false).toList();
-      for (int i = 0; i < _todoList.length; i++) {
-        _checkedStateList[i] = _prefs.getBool('checkbox_status_$i') ?? false;
-      }
+      _todoList = box.values.toList();
     });
   }
 
   void _saveTodoList() {
-    _prefs.setStringList('todo_list', _todoList);
-    for (int i = 0; i < _checkedStateList.length; i++) {
-      _prefs.setBool('checkbox_status_$i', _checkedStateList[i]);
+    final box = Hive.box<TodoItem>('todoBox');
+    box.clear();
+    for (int i = 0; i < _todoList.length; i++) {
+      box.put(i, _todoList[i]);
     }
   }
 
-  Widget _buildTodoItem(String todo, int index) {
-    String formattedDate = DateFormat('E, MMM d', 'en_US')
-        .format(DateTime.parse(todo.split(':').first.trim()));
-
-    // String formattedDate = DateFormat.E()
-    //     .add_MMMd()
-    //     .format(DateTime.parse(todo.split(':').first.trim()));
-    bool isChecked = _checkedStateList[index];
-    TextStyle textStyle = TextStyle(
-      fontWeight: FontWeight.bold,
-      fontStyle: isChecked ? FontStyle.italic : FontStyle.normal,
-      decoration: isChecked ? TextDecoration.lineThrough : TextDecoration.none,
-    );
+  Widget _buildTodoItem(TodoItem todo) {
+    String formattedDate = DateFormat('E, MMM d', 'en_US').format(todo.date);
 
     return Dismissible(
-        key: Key(todo),
-        onDismissed: (direction) {
-          setState(() {
-            _todoList.removeAt(index);
-            _checkedStateList.removeAt(index);
-            _saveTodoList();
-          });
-        },
-        background: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 20.0),
-          color: const Color(0xff6750a4),
-          child: const Icon(
-            Icons.delete,
-            color: Colors.white,
-          ),
+      key: Key(todo.date.toString() + todo.content),
+      onDismissed: (direction) {
+        _removeTodoItem(todo);
+      },
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20.0),
+        color: const Color(0xff6750a4),
+        child: const Icon(
+          Icons.delete,
+          color: Colors.white,
         ),
-        child: Card(
-          elevation: 3,
-          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-            child: ListTile(
-              leading: Checkbox(
-                value: _checkedStateList[index],
-                onChanged: (bool? value) {
+      ),
+      child: Card(
+        elevation: 3,
+        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+          child: Row(
+            children: [
+              Checkbox(
+                value: todo.isDone,
+                onChanged: (value) {
                   setState(() {
-                    _checkedStateList[index] = value ?? false;
+                    todo.isDone = value!;
                     _saveTodoList();
                   });
                 },
               ),
-              title: Text(
-                todo.split(':').last.trim(),
-                // style: const TextStyle(fontWeight: FontWeight.bold),
-                style: textStyle,
-
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: Container(
-                padding:
-                    const EdgeInsets.only(top: 8.0), // Alt boşluk eklemek için
-
-                child: Row(
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.calendar_today,
-                        size: 16), // Tarih ikonu eklendi
-                    const SizedBox(width: 4), // Aralık için boşluk eklendi
-                    Expanded(
-                      child: Text(
-                        formattedDate,
-                        style: const TextStyle(fontStyle: FontStyle.italic),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    )
+                    Text(
+                      todo.content,
+                      style: todo.isDone
+                          ? const TextStyle(
+                              decoration: TextDecoration.lineThrough)
+                          : null,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      formattedDate,
+                      style: const TextStyle(fontStyle: FontStyle.italic),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () {
-                      _editTodoItem(todo, index);
-                    },
-                  ),
-
-                  // Checkbox(
-                  //   value: _checkedStateList[index],
-                  //   onChanged: (bool? value) {
-                  //     setState(() {
-                  //       _checkedStateList[index] = value ?? false;
-                  //       _saveTodoList();
-                  //     });
-                  //   },
-                  // ),//checkbox yeri değiştirildi en sola
-                ],
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: () {
+                  _editTodoItem(todo);
+                },
               ),
-            ),
+            ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -182,14 +143,11 @@ class TodoListScreenState extends State<TodoListScreen> {
     }
   }
 
-  Future<void> _addTodoItem(String todo) async {
-    if (todo.isNotEmpty) {
-      String selectedDateFormatted =
-          DateFormat('yyyy-MM-dd').format(_selectedDate ?? DateTime.now());
-      String todoItem = '$selectedDateFormatted: $todo';
+  Future<void> _addTodoItem(String content) async {
+    if (content.isNotEmpty) {
       setState(() {
-        _todoList.add(todoItem);
-        _checkedStateList.add(false);
+        _todoList.add(
+            TodoItem(content: content, date: _selectedDate ?? DateTime.now()));
         _selectedDate = null;
       });
       _saveTodoList();
@@ -197,12 +155,17 @@ class TodoListScreenState extends State<TodoListScreen> {
     }
   }
 
-  Future<void> _editTodoItem(String oldTodo, int index) async {
-    TextEditingController editTextController = TextEditingController();
-    DateTime? newSelectedDate = _selectedDate;
+  Future<void> _removeTodoItem(TodoItem todo) async {
+    setState(() {
+      _todoList.remove(todo);
+    });
+    _saveTodoList();
+  }
 
-    String oldTodoDate = oldTodo.split(':').first.trim();
-    String oldTodoContent = oldTodo.split(':').last.trim();
+  Future<void> _editTodoItem(TodoItem oldTodo) async {
+    TextEditingController editTextController =
+        TextEditingController(text: oldTodo.content);
+    DateTime? newSelectedDate = oldTodo.date;
 
     showDialog(
       context: context,
@@ -213,7 +176,7 @@ class TodoListScreenState extends State<TodoListScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: editTextController..text = oldTodoContent,
+                controller: editTextController,
                 decoration: const InputDecoration(labelText: 'Not İçeriği'),
               ),
               const SizedBox(height: 10),
@@ -222,7 +185,8 @@ class TodoListScreenState extends State<TodoListScreen> {
                   Expanded(
                     child: TextField(
                       readOnly: true,
-                      controller: TextEditingController(text: oldTodoDate),
+                      controller: TextEditingController(
+                          text: DateFormat('yyyy-MM-dd').format(oldTodo.date)),
                       decoration: const InputDecoration(labelText: 'Tarih'),
                     ),
                   ),
@@ -255,15 +219,8 @@ class TodoListScreenState extends State<TodoListScreen> {
             ),
             TextButton(
               onPressed: () {
-                String editedContent = editTextController.text.trim();
-                String newDateFormatted = DateFormat('yyyy-MM-dd')
-                    .format(newSelectedDate ?? DateTime.now());
-                String newTodo = '$newDateFormatted: $editedContent';
-                _todoList[index] = newTodo;
-                _saveTodoList();
-                setState(() {
-                  _todoList = List.from(_todoList);
-                });
+                _updateTodoItem(
+                    oldTodo, editTextController.text.trim(), newSelectedDate);
                 Navigator.of(context).pop();
               },
               child: const Text('Kaydet'),
@@ -274,58 +231,106 @@ class TodoListScreenState extends State<TodoListScreen> {
     );
   }
 
+  void _updateTodoItem(
+      TodoItem oldTodo, String editedContent, DateTime? newDate) {
+    setState(() {
+      oldTodo.content = editedContent;
+      oldTodo.date = newDate ?? DateTime.now();
+    });
+    _saveTodoList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Task List'),
       ),
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            child: ListView.builder(
-              itemCount: _todoList.length,
-              itemBuilder: (context, index) {
-                return _buildTodoItem(_todoList[index], index);
-              },
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.all(8.0),
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: TextField(
-                    controller: _textEditingController,
-                    decoration: InputDecoration(
-                      labelText: 'Yeni Not Ekle',
-                      //border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          _selectDate(context);
-                        },
-                        icon: const Icon(Icons.calendar_today),
+      body: ValueListenableBuilder(
+        valueListenable: Hive.box<TodoItem>('todoBox').listenable(),
+        builder: (context, Box<TodoItem> box, _) {
+          return Column(
+            children: <Widget>[
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _todoList.length,
+                  itemBuilder: (context, index) {
+                    return _buildTodoItem(_todoList[index]);
+                  },
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: TextField(
+                        controller: _textEditingController,
+                        decoration: InputDecoration(
+                          labelText: 'Yeni Not Ekle',
+                          suffixIcon: IconButton(
+                            onPressed: () {
+                              _selectDate(context);
+                            },
+                            icon: const Icon(Icons.calendar_today),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 8.0),
+                    ElevatedButton(
+                      onPressed: () {
+                        _addTodoItem(_textEditingController.text);
+                      },
+                      child: const Text('Ekle'),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8.0),
-                ElevatedButton(
-                  onPressed: () {
-                    _addTodoItem(_textEditingController.text);
-                  },
-                  child: const Text('Ekle'),
-                ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+}
+
+@HiveType(typeId: 0)
+class TodoItem extends HiveObject {
+  @HiveField(0)
+  late String content;
+
+  @HiveField(1)
+  late DateTime date;
+
+  @HiveField(2)
+  bool isDone;
+
+  TodoItem({required this.content, required this.date, this.isDone = false});
+}
+
+class TodoItemAdapter extends TypeAdapter<TodoItem> {
+  @override
+  final int typeId = 0;
+
+  @override
+  TodoItem read(BinaryReader reader) {
+    return TodoItem(
+      content: reader.read(),
+      date: DateTime.parse(reader.read()),
+      isDone: reader.read(),
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, TodoItem obj) {
+    writer.write(obj.content);
+    writer.write(obj.date.toIso8601String());
+    writer.write(obj.isDone);
   }
 }
